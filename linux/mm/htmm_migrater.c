@@ -136,7 +136,7 @@ static bool need_toptier_demotion(pg_data_t *pgdat, struct mem_cgroup *memcg, un
     unsigned long nr_lru_pages, max_nr_pages;
     unsigned long nr_need_promoted;
     unsigned long fasttier_max_watermark, fasttier_min_watermark;
-    int target_nid = htmm_cxl_mode ? 1 : next_demotion_node(pgdat->node_id);
+    int target_nid = htmm_cxl_mode ? HTMM_CXL_REMOTE_NUMA : next_demotion_node(pgdat->node_id);
     pg_data_t *target_pgdat;
   
     if (target_nid == NUMA_NO_NODE)
@@ -336,9 +336,9 @@ static unsigned long migrate_page_list(struct list_head *migrate_list,
     unsigned int nr_succeeded = 0;
 
     if (promotion)
-	target_nid = htmm_cxl_mode ? 0 : next_promotion_node(pgdat->node_id);
+	target_nid = htmm_cxl_mode ? HTMM_CXL_LOCAL_NUMA : next_promotion_node(pgdat->node_id);
     else
-	target_nid = htmm_cxl_mode ? 1 : next_demotion_node(pgdat->node_id);
+	target_nid = htmm_cxl_mode ? HTMM_CXL_REMOTE_NUMA : next_demotion_node(pgdat->node_id);
 
     if (list_empty(migrate_list))
 	return 0;
@@ -611,7 +611,7 @@ static unsigned long demote_node(pg_data_t *pgdat, struct mem_cgroup *memcg,
     } while (priority);
 
     if (htmm_nowarm == 0) {
-	int target_nid = htmm_cxl_mode ? 1 : next_demotion_node(pgdat->node_id);
+	int target_nid = htmm_cxl_mode ? HTMM_CXL_REMOTE_NUMA : next_demotion_node(pgdat->node_id);
 	unsigned long nr_lowertier_active =
 	    target_nid == NUMA_NO_NODE ? 0: need_lowertier_promotion(NODE_DATA(target_nid), memcg);
 	
@@ -637,7 +637,7 @@ static unsigned long promote_node(pg_data_t *pgdat, struct mem_cgroup *memcg)
     unsigned long nr_to_promote, nr_promoted = 0, tmp;
     enum lru_list lru = LRU_ACTIVE_ANON;
     short priority = DEF_PRIORITY;
-    int target_nid = htmm_cxl_mode ? 0 : next_promotion_node(pgdat->node_id);
+    int target_nid = htmm_cxl_mode ? HTMM_CXL_LOCAL_NUMA : next_promotion_node(pgdat->node_id);
 
     if (!promotion_available(target_nid, memcg, &nr_to_promote))
 	return 0;
@@ -1071,7 +1071,7 @@ static int kmigraterd(void *p)
     int nid = pgdat->node_id;
 
     if (htmm_cxl_mode) {
-	if (nid == 0)
+	if (nid == HTMM_CXL_LOCAL_NUMA)
 	    return kmigraterd_demotion(pgdat);
 	else
 	    return kmigraterd_promotion(pgdat);

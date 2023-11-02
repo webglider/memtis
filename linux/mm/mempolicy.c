@@ -2123,7 +2123,7 @@ struct page *alloc_pages_vma(gfp_t gfp, int order, struct vm_area_struct *vma,
 
 	    while (max_nr_pages <= (get_nr_lru_pages_node(memcg, pgdat) + nr_pages)) {
 		if (htmm_cxl_mode) {
-		    nid = 1;
+		    nid = HTMM_CXL_REMOTE_NUMA;
 		    break;
 		}
 		if ((nid = next_demotion_node(nid)) == NUMA_NO_NODE) {
