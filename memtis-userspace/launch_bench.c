@@ -4,6 +4,8 @@
 #include <err.h>
 #include <sys/wait.h>
 
+#define BENCH_NODE 3
+
 int syscall_htmm_start = 449;
 int syscall_htmm_end = 450;
 
@@ -35,9 +37,9 @@ int main(int argc, char** argv)
 	exit(-1);
     }
 #ifdef __NOPID
-    htmm_start(-1, 0);
+    htmm_start(-1, BENCH_NODE);
 #else
-    htmm_start(pid, 0);
+    htmm_start(pid, BENCH_NODE);
 #endif
     printf("pid: %d\n", pid);
     waitpid(pid, &state, 0);

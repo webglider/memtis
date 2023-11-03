@@ -15,6 +15,7 @@
 
 struct task_struct *access_sampling = NULL;
 struct perf_event ***mem_event;
+int *cpus_in_socket = NULL;
 
 static bool valid_va(unsigned long addr)
 {
@@ -77,7 +78,9 @@ static int __perf_event_open(__u64 config, __u64 config1, __u64 cpu,
     else
 	__pid = pid;
 	
-    event_fd = htmm__perf_event_open(&attr, __pid, cpu, -1, 0);
+	// Convert logical cpu id to physical cpu number
+	event_fd = htmm__perf_event_open(&attr, __pid, cpus_in_socket[cpu], -1, 0);
+    // event_fd = htmm__perf_event_open(&attr, __pid, cpu, -1, 0);
     //event_fd = htmm__perf_event_open(&attr, -1, cpu, -1, 0);
     if (event_fd <= 0) {
 	printk("[error htmm__perf_event_open failure] event_fd: %d\n", event_fd);
@@ -95,12 +98,23 @@ static int __perf_event_open(__u64 config, __u64 config1, __u64 cpu,
 
 static int pebs_init(pid_t pid, int node)
 {
-    int cpu, event;
+    int cpu, event, socket_cpu_count;
 
     mem_event = kzalloc(sizeof(struct perf_event **) * CPUS_PER_SOCKET, GFP_KERNEL);
     for (cpu = 0; cpu < CPUS_PER_SOCKET; cpu++) {
 	mem_event[cpu] = kzalloc(sizeof(struct perf_event *) * N_HTMMEVENTS, GFP_KERNEL);
     }
+	cpus_in_socket = kzalloc(sizeof(int) * CPUS_PER_SOCKET, GFP_KERNEL);
+	if(cpus_in_socket == NULL) {
+		printk("failed to allocate cpus_in_socket\n");
+		return -1;
+	}
+	for(cpu = 0; cpu < NR_CPUS && socket_cpu_count < CPUS_PER_SOCKET; cpu++) {
+		if(cpu_present(cpu) && cpu_to_node(cpu) == KSAMPLED_SOCKET) {
+			cpus_in_socket[socket_cpu_count] = cpu;
+			socket_cpu_count++;
+		}
+	}
     
     printk("pebs_init\n");   
     for (cpu = 0; cpu < CPUS_PER_SOCKET; cpu++) {
@@ -131,6 +145,7 @@ static void pebs_disable(void)
 		perf_event_disable(mem_event[cpu][event]);
 	}
     }
+	kfree(cpus_in_socket);
 }
 
 static void pebs_enable(void)
@@ -208,7 +223,7 @@ static int ksamplingd(void *data)
 
     /* TODO implements per-CPU node ksamplingd by using pg_data_t */
     /* Currently uses a single CPU node(0) */
-    const struct cpumask *cpumask = cpumask_of_node(0);
+    const struct cpumask *cpumask = cpumask_of_node(KSAMPLED_SOCKET);
     if (!cpumask_empty(cpumask))
 	do_set_cpus_allowed(access_sampling, cpumask);
 
