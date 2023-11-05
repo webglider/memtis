@@ -10,7 +10,8 @@ MEM_NODES=($(ls /sys/devices/system/node | grep node | awk -F 'node' '{print $NF
 
 CGROUP_NAME="htmm"
 ###### update DIR!
-DIR=/home/taehyung/workspace/memtis/memtis-userspace
+DIR=/home/midhul/memtis/memtis-userspace
+LOCAL_NUMA=3
 
 CONFIG_PERF=off
 CONFIG_NS=off
@@ -53,10 +54,10 @@ function func_memtis_setting() {
     fi
 
     if [[ "x${CONFIG_CXL_MODE}" == "xon" ]]; then
-	${DIR}/scripts/set_uncore_freq.sh on
+	# ${DIR}/scripts/set_uncore_freq.sh on
 	echo "enabled" | tee /sys/kernel/mm/htmm/htmm_cxl_mode
     else
-	${DIR}/scripts/set_uncore_freq.sh off
+	# ${DIR}/scripts/set_uncore_freq.sh off
 	echo "disabled" | tee /sys/kernel/mm/htmm/htmm_cxl_mode
     fi
 
@@ -104,7 +105,7 @@ function func_main() {
     fi
     
     # use 20 threads 
-    PINNING="taskset -c 0-19"
+    PINNING="taskset -c 3,7,11,15,19,23,27,31"
 
     echo "-----------------------"
     echo "NVM RATIO: ${NVM_RATIO}"
@@ -118,11 +119,11 @@ function func_main() {
     # set memcg for htmm
     sudo ${DIR}/scripts/set_htmm_memcg.sh htmm remove
     sudo ${DIR}/scripts/set_htmm_memcg.sh htmm $$ enable
-    sudo ${DIR}/scripts/set_mem_size.sh htmm 0 ${BENCH_DRAM}
+    sudo ${DIR}/scripts/set_mem_size.sh htmm $LOCAL_NUMA ${BENCH_DRAM}
     sleep 2
 
     # check dram size
-    MAX_DRAM_SIZE=$(numastat -m | awk '$1 == "MemFree" { print int($2) }')
+    MAX_DRAM_SIZE=$(numastat -m | awk -v nidx=$LOCAL_NUMA '$1 == "MemFree" { print int($(2+nidx)) }')
     if [[ ${BENCH_DRAM::-2} -gt ${MAX_DRAM_SIZE} ]]; then
 	echo "Available DRAM size for ${BENCH_NAME} is only ${MAX_DRAM_SIZE}MB"
 	echo "ERROR: abort -- change the ratio"
@@ -143,7 +144,7 @@ function func_main() {
 	${TIME} -f "execution time %e (s)" \
 	    ${PINNING} ${DIR}/bin/launch_bench_nopid ${BENCH_RUN} < ${BENCH_ARG} 2>&1 \
 	    | tee ${LOG_DIR}/output.log
-    else
+	else
 	${TIME} -f "execution time %e (s)" \
 	    ${PINNING} ${DIR}/bin/launch_bench ${BENCH_RUN} 2>&1 \
 	    | tee ${LOG_DIR}/output.log
@@ -162,7 +163,7 @@ function func_main() {
 	    | awk ' { print $4 }' > ${LOG_DIR}/throughput.out
     fi
 
-    sudo dmesg -c > ${LOG_DIR}/dmesg.txt
+    sudo dmesg > ${LOG_DIR}/dmesg.txt
     # disable htmm
     sudo ${DIR}/scripts/set_htmm_memcg.sh htmm $$ disable
 }
