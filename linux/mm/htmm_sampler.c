@@ -14,7 +14,7 @@
 #include <linux/htmm.h>
 
 struct task_struct *access_sampling = NULL;
-struct perf_event ***mem_event;
+struct perf_event ***mem_event = NULL;
 int *cpus_in_socket = NULL;
 
 static bool valid_va(unsigned long addr)
@@ -139,13 +139,22 @@ static void pebs_disable(void)
     int cpu, event;
 
     printk("pebs disable\n");
-    for (cpu = 0; cpu < CPUS_PER_SOCKET; cpu++) {
-	for (event = 0; event < N_HTMMEVENTS; event++) {
-	    if (mem_event[cpu][event])
-		perf_event_disable(mem_event[cpu][event]);
+	if(mem_event) {
+		for (cpu = 0; cpu < CPUS_PER_SOCKET; cpu++) {
+		for (event = 0; event < N_HTMMEVENTS; event++) {
+			if (mem_event[cpu][event])
+			perf_event_disable(mem_event[cpu][event]);
+		}
+		kfree(mem_event[cpu]);
+		mem_event[cpu] = NULL;
+    	}
+		kfree(mem_event);
+		mem_event = NULL;
 	}
-    }
+
+    
 	kfree(cpus_in_socket);
+	cpus_in_socket = NULL;
 }
 
 static void pebs_enable(void)
@@ -441,5 +450,7 @@ void ksamplingd_exit(void)
 	kthread_stop(access_sampling);
 	access_sampling = NULL;
     }
-    pebs_disable();
+	if(mem_event) {
+		pebs_disable();
+	}
 }
