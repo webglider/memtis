@@ -1,11 +1,13 @@
 #!/bin/bash
 
-BIN=/home/midhul/memtis/memtis-userspace/bench_dir/gups
+BIN=/home/midhul/colloid/gups
 gups_cores=4
 BENCH_DRAM="28000MB"
-GUPS_DURATION=200
+GUPS_DURATION=400
 
-BENCH_RUN="${BIN}/gups-r ${gups_cores}"
+workload=${NVM_RATIO}
+
+BENCH_RUN="${BIN}/${workload} ${gups_cores}"
 
 
 export BENCH_RUN
