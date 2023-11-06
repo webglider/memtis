@@ -146,7 +146,7 @@ function func_main() {
 	    | tee ${LOG_DIR}/output.log
 	else
 	${TIME} -f "execution time %e (s)" \
-	    ${PINNING} ${DIR}/bin/launch_bench ${BENCH_RUN} 2>&1 \
+	    ${PINNING} ${DIR}/bin/launch_bench_nopid ${BENCH_RUN} 2>&1 \
 	    | tee ${LOG_DIR}/output.log
     fi
 
