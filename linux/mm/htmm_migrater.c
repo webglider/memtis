@@ -37,6 +37,12 @@
 #define prefetchw_prev_lru_page(_page, _base, _field) do { } while (0)
 #endif
 
+// colloid state
+int colloid_local_lat_gt_remote = 0;
+EXPORT_SYMBOL(colloid_local_lat_gt_remote);
+int colloid_nid_of_interest = NUMA_NO_NODE;
+EXPORT_SYMBOL(colloid_nid_of_interest);
+
 void add_memcg_to_kmigraterd(struct mem_cgroup *memcg, int nid)
 {
     struct mem_cgroup_per_node *mz, *pn = memcg->nodeinfo[nid];
@@ -1055,9 +1061,14 @@ static int kmigraterd_promotion(pg_data_t *pgdat)
 	}
 
 	/* promotes hot pages to fast memory node */
-	if (need_lowertier_promotion(pgdat, memcg)) {
-	    promote_node(pgdat, memcg);
+	if(!htmm_cxl_mode || !READ_ONCE(colloid_local_lat_gt_remote)) {
+		if (need_lowertier_promotion(pgdat, memcg)) {
+			promote_node(pgdat, memcg);
+		}
 	}
+
+	// TODO: if htmm_cxl_mode and pgdat->node_id == remote_numa and colloid_local_lat_gt_remote
+	// then demote hot pages from local numa 
 
 	msleep_interruptible(htmm_promotion_period_in_ms);
     }
