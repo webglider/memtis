@@ -1,10 +1,10 @@
 CC = gcc
 CFLAGS = -O3 -msse4 -g -march=native -funroll-loops
 
-all: gups-r
+all: gups64-rw
 
-gups-r:
-	$(CC) $(CFLAGS) gups.c -o gups-r -lpthread
+gups64-rw:
+	$(CC) $(CFLAGS) gups-opt.c -o gups64-rw -lpthread
 
 clean:
-	rm -f gups-r *.o
+	rm -f gups64-rw *.o
