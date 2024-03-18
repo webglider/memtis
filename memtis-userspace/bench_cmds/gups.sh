@@ -1,9 +1,9 @@
 #!/bin/bash
 
 BIN=/home/midhul/colloid/gups
-gups_cores=4
-BENCH_DRAM="28000MB"
-GUPS_DURATION=400
+gups_cores=${MEMTIS_GUPS_CORES}
+BENCH_DRAM="32000MB"
+GUPS_DURATION=${MEMTIS_GUPS_DURATION}
 
 workload=${NVM_RATIO}
 

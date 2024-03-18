@@ -11,7 +11,7 @@ MEM_NODES=($(ls /sys/devices/system/node | grep node | awk -F 'node' '{print $NF
 CGROUP_NAME="htmm"
 ###### update DIR!
 DIR=/home/midhul/memtis/memtis-userspace
-LOCAL_NUMA=3
+LOCAL_NUMA=1
 
 CONFIG_PERF=off
 CONFIG_NS=off
@@ -105,7 +105,8 @@ function func_main() {
     fi
     
     # use 20 threads 
-    PINNING="taskset -c 3,7,11,15,19,23,27,31"
+    PINNING="taskset -c 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,53,55,57,59"
+    #PINNING="taskset -c 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39"
 
     echo "-----------------------"
     echo "NVM RATIO: ${NVM_RATIO}"
@@ -149,6 +150,8 @@ function func_main() {
 	    ${PINNING} ${DIR}/bin/launch_bench_nopid ${BENCH_RUN} 2>&1 \
 	    | tee ${LOG_DIR}/output.log
     fi
+
+    sleep 10;
 
     sudo killall -9 memory_stat.sh
     cat /proc/vmstat | grep -e thp -e htmm -e pgmig > ${LOG_DIR}/after_vmstat.log

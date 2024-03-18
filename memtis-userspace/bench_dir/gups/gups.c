@@ -14,10 +14,10 @@
 #include <pthread.h>
 #include <stdatomic.h>
 
-#define MAX_THREADS 8
-#define LOCAL_NUMA 3
-#define REMOTE_NUMA 2
-#define CORE_LIST 3,7,11,15,19,23,27,31 // Update this to list of cores on NUMA node
+#define MAX_THREADS 32
+#define LOCAL_NUMA 1
+#define REMOTE_NUMA 0
+#define CORE_LIST 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,53,55,57,59,61,63 // Update this to list of cores on NUMA node
 
 #define WSS 68719476736ULL // 64GiB
 #define HOTSS 17179869184ULL // 16GiB
@@ -132,7 +132,7 @@ void *thread_function(void *arg) {
 int main(int argc, char *argv[]) {
     pg_size = 2ULL*1024ULL*1024ULL;
     setbuf(stdout, NULL);
-    int cores[8] = {3,7,11,15,19,23,27,31};
+    int cores[32] = {1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,53,55,57,59,61,63};
     if (argc < 2) {
         fprintf(stderr, "Usage: %s <num_threads>\n", argv[0]);
         return 1;

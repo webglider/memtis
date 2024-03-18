@@ -4,7 +4,7 @@
 BIN=/home/midhul/memtis/memtis-userspace/bench_dir/gapbs
 GRAPH_DIR=/home/midhul/memtis/memtis-userspace/bench_dir/gapbs/benchmark/graphs
 
-BENCH_RUN="${BIN}/pr -f ${GRAPH_DIR}/twitter.sg -i1000 -t1e-4 -n8"
+BENCH_RUN="${BIN}/pr -f ${GRAPH_DIR}/twitter.sg -i1000 -t1e-4 -n20"
 BENCH_DRAM=""
 
 

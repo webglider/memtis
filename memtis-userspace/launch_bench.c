@@ -4,7 +4,7 @@
 #include <err.h>
 #include <sys/wait.h>
 
-#define BENCH_NODE 3
+#define BENCH_NODE 1
 
 int syscall_htmm_start = 449;
 int syscall_htmm_end = 450;

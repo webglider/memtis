@@ -2,8 +2,8 @@
 
 # BENCHMARKS="XSBench graph500 gapbs-pr liblinear silo btree speccpu-bwaves speccpu-roms"
 BENCHMARKS="gapbs-pr"
-LOCAL_NUMA=3
-REMOTE_NUMA=2
+LOCAL_NUMA=1
+REMOTE_NUMA=0
 
 sudo dmesg -c
 
@@ -15,7 +15,7 @@ sudo echo "always" | tee /sys/kernel/mm/transparent_hugepage/defrag
 
 for BENCH in ${BENCHMARKS};
 do
-    export GOMP_CPU_AFFINITY=3,7,11,15,19,23,27,31
+    export GOMP_CPU_AFFINITY=1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,53,55,57,59,61,63
     if [[ -e ./bench_cmds/${BENCH}.sh ]]; then
 	source ./bench_cmds/${BENCH}.sh
     else
@@ -30,7 +30,7 @@ do
 
     if [[ "x${BENCH}" =~ "xspeccpu" ]]; then
 	/usr/bin/time -f "execution time %e (s)" \
-	    taskset -c 3,7,11,15,19,23,27,31 numactl -m $REMOTE_NUMA ${BENCH_RUN} < ${BENCH_ARG} 2>&1 \
+	    taskset -c 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,53,55,57,59,61,63 numactl -m $REMOTE_NUMA ${BENCH_RUN} < ${BENCH_ARG} 2>&1 \
 	    | tee ${LOG_DIR}/output.log
     else
 	/usr/bin/time -f "execution time %e (s)" \
