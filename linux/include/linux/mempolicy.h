@@ -208,6 +208,7 @@ extern bool htmm_cxl_mode;
 extern bool htmm_skip_cooling;
 extern unsigned int htmm_thres_cooling_alloc;
 extern unsigned int ksampled_soft_cpu_quota;
+extern bool htmm_colloid;
 #endif
 static inline bool mpol_is_preferred_many(struct mempolicy *pol)
 {

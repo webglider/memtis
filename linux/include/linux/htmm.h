@@ -1,7 +1,7 @@
 #include <uapi/linux/perf_event.h>
 
 // colloid
-#define COLLOID_PRECISION 1000000UL
+#define COLLOID_PRECISION 1000000000UL
 
 #define DEFERRED_SPLIT_ISOLATED 1
 
