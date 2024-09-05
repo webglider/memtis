@@ -198,6 +198,7 @@ extern unsigned int ksampled_min_sample_ratio;
 extern unsigned int ksampled_max_sample_ratio;
 extern unsigned int htmm_demotion_period_in_ms;
 extern unsigned int htmm_promotion_period_in_ms;
+extern unsigned int htmm_migration_limit_nr_pages;
 extern unsigned int htmm_thres_split;
 extern unsigned int htmm_nowarm;
 extern unsigned int htmm_util_weight;
