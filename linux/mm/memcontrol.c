@@ -7603,6 +7603,9 @@ static ssize_t memcg_htmm_write(struct kernfs_open_file *of,
     }
     for_each_node_state(nid, N_MEMORY) {
 	struct pglist_data *pgdat = NODE_DATA(nid);
+
+	// Midhul: debugging
+	pr_info("[debug] deferrred_split_queue_len: %lu, nid: %d", (memcg->nodeinfo[nid])->deferred_split_queue.split_queue_len, nid);
 	
 	if (memcg->htmm_enabled) {
 	    WRITE_ONCE(pgdat->kswapd_failures, MAX_RECLAIM_RETRIES);
