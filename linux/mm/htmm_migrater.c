@@ -37,6 +37,16 @@
 #define prefetchw_prev_lru_page(_page, _base, _field) do { } while (0)
 #endif
 
+// colloid state
+int colloid_local_lat_gt_remote = 0;
+EXPORT_SYMBOL(colloid_local_lat_gt_remote);
+int colloid_nid_of_interest = NUMA_NO_NODE;
+EXPORT_SYMBOL(colloid_nid_of_interest);
+unsigned long colloid_delta_p = 0; // scaled by COLLOID_PRECISION
+EXPORT_SYMBOL(colloid_delta_p);
+unsigned long colloid_dynlimit = 0; // expressed in base pages
+EXPORT_SYMBOL(colloid_dynlimit);
+
 void add_memcg_to_kmigraterd(struct mem_cgroup *memcg, int nid)
 {
     struct mem_cgroup_per_node *mz, *pn = memcg->nodeinfo[nid];
