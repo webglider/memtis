@@ -3038,6 +3038,7 @@ unsigned int ksampled_min_sample_ratio = 50; // 50%
 unsigned int ksampled_max_sample_ratio = 10; // 10%
 unsigned int htmm_demotion_period_in_ms = 500;
 unsigned int htmm_promotion_period_in_ms = 500;
+unsigned int htmm_migration_limit_nr_pages = 25000;
 unsigned int htmm_thres_split = 2; 
 unsigned int htmm_nowarm = 0; // enabled: 0, disabled: 1
 unsigned int htmm_util_weight = 10; // no impact (unused)
@@ -3333,6 +3334,31 @@ static struct kobj_attribute htmm_promotion_period_attr =
 	__ATTR(htmm_promotion_period_in_ms, 0644, htmm_promotion_period_show,
 	       htmm_promotion_period_store);
 
+static ssize_t htmm_migration_limit_show(struct kobject *kobj,
+				   struct kobj_attribute *attr, char *buf)
+{
+	return sysfs_emit(buf, "%u\n", htmm_migration_limit_nr_pages);
+}
+
+static ssize_t htmm_migration_limit_store(struct kobject *kobj,
+				    struct kobj_attribute *attr,
+				    const char *buf, size_t count)
+{
+	int err;
+	unsigned int thres;
+
+	err = kstrtouint(buf, 10, &thres);
+	if (err)
+		return err;
+
+	WRITE_ONCE(htmm_migration_limit_nr_pages, thres);
+	return count;
+}
+
+static struct kobj_attribute htmm_migration_limit_attr =
+	__ATTR(htmm_migration_limit_nr_pages, 0644, htmm_migration_limit_show,
+	       htmm_migration_limit_store);
+
 static ssize_t ksampled_soft_cpu_quota_show(struct kobject *kobj,
 				   struct kobj_attribute *attr, char *buf)
 {
@@ -3617,6 +3643,7 @@ static struct attribute *htmm_attrs[] = {
 	&ksampled_max_sample_ratio_attr.attr,
 	&htmm_demotion_period_attr.attr,
 	&htmm_promotion_period_attr.attr,
+	&htmm_migration_limit_attr.attr,
 	&ksampled_soft_cpu_quota_attr.attr,
 	&htmm_thres_split_attr.attr,
 	&htmm_nowarm_attr.attr,

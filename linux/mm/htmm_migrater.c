@@ -723,6 +723,9 @@ static unsigned long promote_node(pg_data_t *pgdat, struct mem_cgroup *memcg)
 
     nr_to_promote = min(nr_to_promote,
 		    lruvec_lru_size(lruvec, lru, MAX_NR_ZONES));
+
+	nr_to_promote = min(nr_to_promote, 
+			(unsigned long) htmm_migration_limit_nr_pages);
     
     if (nr_to_promote == 0 && htmm_mode == HTMM_NO_MIG) {
 	lru = LRU_INACTIVE_ANON;
@@ -744,7 +747,7 @@ static unsigned long demote_node_active(pg_data_t *pgdat, struct mem_cgroup *mem
     unsigned long nr_to_demote, nr_demoted = 0;
     enum lru_list lru = LRU_ACTIVE_ANON;
 
-	nr_to_demote = 25000; // TODO: parametrize rate limit; looks like base page count
+	nr_to_demote = (unsigned long) htmm_migration_limit_nr_pages;
 
     nr_to_demote = min(nr_to_demote,
 		    lruvec_lru_size(lruvec, lru, MAX_NR_ZONES));
