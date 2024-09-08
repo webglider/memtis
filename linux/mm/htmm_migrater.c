@@ -720,7 +720,7 @@ static unsigned long migrate_lruvec_colloid(unsigned long nr_to_scan, unsigned l
 
 		
 			page_p = (page_freq * COLLOID_PRECISION)/overall_accesses;
-			if(page_p <= pmass) {
+			if(page_p <= pmass && page_p > 0) {
 				list_add(&page->lru, &candidate_list);
 				nr_candidate_pages += PageTransHuge(compound_head(page)) ? (HPAGE_PMD_NR) : (1);
 				pmass -= page_p;
@@ -784,6 +784,7 @@ static unsigned long promote_node(pg_data_t *pgdat, struct mem_cgroup *memcg)
     
     return nr_promoted;
 }
+
 
 static unsigned long cooling_active_list(unsigned long nr_to_scan,
 	struct lruvec *lruvec, enum lru_list lru)
@@ -1126,9 +1127,28 @@ static int kmigraterd_demotion(pg_data_t *pgdat)
     return 0;
 }
 
+static unsigned long demote_node_active_colloid(pg_data_t *pgdat, struct mem_cgroup *memcg)
+{
+    struct lruvec *lruvec = mem_cgroup_lruvec(memcg, pgdat);
+    unsigned long nr_to_demote, nr_demoted = 0, tmp, delta_p, overall_accesses;
+    enum lru_list lru = LRU_ACTIVE_ANON;
+    int target_nid = htmm_cxl_mode ? HTMM_CXL_REMOTE_NUMA : next_demotion_node(pgdat->node_id);
+
+    nr_to_demote = lruvec_lru_size(lruvec, lru, MAX_NR_ZONES);
+	
+	// apply colloid migration limit
+	nr_to_demote = min(nr_to_demote, min(htmm_migration_limit_nr_pages, READ_ONCE(colloid_dynlimit)));
+	delta_p = READ_ONCE(colloid_delta_p);
+	overall_accesses = READ_ONCE(memcg->nr_max_sampled);
+	// demote up to nr_to_demote pages accounting for up to delta_p probability mass
+	nr_demoted = migrate_lruvec_colloid(nr_to_demote, nr_to_demote, delta_p, overall_accesses, pgdat, lruvec, lru, false);
+	return nr_demoted;
+}
+
 static int kmigraterd_promotion(pg_data_t *pgdat)
 {
     const struct cpumask *cpumask;
+	pg_data_t *upper_pgdat;
 
     if (htmm_cxl_mode)
     	cpumask = cpumask_of_node(pgdat->node_id);
@@ -1186,7 +1206,9 @@ static int kmigraterd_promotion(pg_data_t *pgdat)
 	    	promote_node(pgdat, memcg);
 		}
 	} else {
-		// TODO: demote hot pages from default tier to alternate
+		// demote hot pages from default tier to alternate tier
+		upper_pgdat = htmm_cxl_mode ? NODE_DATA(HTMM_CXL_LOCAL_NUMA) : next_promotion_node(pgdat->node_id);
+		demote_node_active_colloid(upper_pgdat, memcg);
 	}
 
 	msleep_interruptible(htmm_promotion_period_in_ms);
