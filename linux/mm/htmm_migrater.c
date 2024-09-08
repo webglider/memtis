@@ -16,8 +16,11 @@
 #include <linux/htmm.h>
 #include <linux/wait.h>
 #include <linux/sched.h>
+#include <trace/events/colloid.h>
+
 
 #include "internal.h"
+
 
 #define MIN_WATERMARK_LOWER_LIMIT   128 * 100 // 50MB
 #define MIN_WATERMARK_UPPER_LIMIT   2560 * 100 // 1000MB
@@ -743,6 +746,8 @@ static unsigned long migrate_lruvec_colloid(unsigned long nr_to_scan, unsigned l
 
 		mem_cgroup_uncharge_list(&remaining_list);
 		free_unref_page_list(&remaining_list);
+
+		trace_colloid_migrate(nr_to_scan, migrate_limit, delta_p, overall_accesses, promotion, nr_migrated);
 
 		return nr_migrated;
 }
