@@ -28,6 +28,10 @@ extern unsigned long colloid_dynlimit;
 #define LOG_SIZE 10000
 #define MIN_LOCAL_LAT 15
 #define MIN_REMOTE_LAT 30
+#define OCC_PRECISION 1000000UL
+#define COLLOID_DELTA_PERCENT 5UL
+#define COLLOID_EPSILON_PERCENT 1UL
+#define MIGRATION_QUANTUM_MS 500
 
 // CHA counters are MSR-based.  
 //   The starting MSR address is 0x0E00 + 0x10*CHA
@@ -50,6 +54,7 @@ extern unsigned long colloid_dynlimit;
 u64 smoothed_occ_local, smoothed_inserts_local;
 u64 smoothed_occ_remote, smoothed_inserts_remote;
 u64 smoothed_lat_local, smoothed_lat_remote;
+u64 p_lo, p_hi;
 
 void thread_fun_poll_cha(struct work_struct *);
 struct workqueue_struct *poll_cha_queue;
@@ -158,6 +163,7 @@ void thread_fun_poll_cha(struct work_struct *work) {
     #endif
     u64 cum_occ, delta_tsc, cur_occ, cur_inserts;
     u64 cur_lat_local, cur_lat_remote;
+    u64 abs_diff, cur_p, target_p, dlimit;
     
     while (budget) {
         // Sample counters and update state
@@ -169,13 +175,13 @@ void thread_fun_poll_cha(struct work_struct *work) {
 
         cum_occ = cur_ctr_val[0][0] - prev_ctr_val[0][0];
         delta_tsc = cur_ctr_tsc[0][0] - prev_ctr_tsc[0][0];
-        cur_occ = (cum_occ << 20)/delta_tsc;
-        cur_inserts = (cur_ctr_val[0][1] - prev_ctr_val[0][1])<<10;
+        cur_occ = (cum_occ * OCC_PRECISION)/delta_tsc;
+        cur_inserts = (cur_ctr_val[0][1] - prev_ctr_val[0][1]);
         WRITE_ONCE(smoothed_occ_local, (cur_occ + ((1<<EWMA_EXP) - 1)*smoothed_occ_local)>>EWMA_EXP);
         WRITE_ONCE(smoothed_inserts_local, (cur_inserts + ((1<<EWMA_EXP) - 1)*smoothed_inserts_local)>>EWMA_EXP);
-        cur_lat_local = (smoothed_inserts_local > 0)?(smoothed_occ_local/smoothed_inserts_local):(MIN_LOCAL_LAT);
-        cur_lat_local = (cur_lat_local > MIN_LOCAL_LAT)?(cur_lat_local):(MIN_LOCAL_LAT);
-        WRITE_ONCE(smoothed_lat_local, cur_lat_local);
+        // cur_lat_local = (smoothed_inserts_local > 0)?(smoothed_occ_local/smoothed_inserts_local):(MIN_LOCAL_LAT);
+        // cur_lat_local = (cur_lat_local > MIN_LOCAL_LAT)?(cur_lat_local):(MIN_LOCAL_LAT);
+        // WRITE_ONCE(smoothed_lat_local, cur_lat_local);
         // WRITE_ONCE(smoothed_lat_local, (cur_lat_local*1000 + 31*smoothed_lat_local)/32);
         // log_buffer[log_idx].tsc = cur_ctr_tsc[0][0];
         // log_buffer[log_idx].occ_local = cur_occ;
@@ -183,21 +189,61 @@ void thread_fun_poll_cha(struct work_struct *work) {
 
         cum_occ = cur_ctr_val[1][0] - prev_ctr_val[1][0];
         delta_tsc = cur_ctr_tsc[1][0] - prev_ctr_tsc[1][0];
-        cur_occ = (cum_occ << 20)/delta_tsc;
-        cur_inserts = (cur_ctr_val[1][1] - prev_ctr_val[1][1])<<10;
+        cur_occ = (cum_occ * OCC_PRECISION)/delta_tsc;
+        cur_inserts = (cur_ctr_val[1][1] - prev_ctr_val[1][1]);
         WRITE_ONCE(smoothed_occ_remote, (cur_occ + ((1<<EWMA_EXP) - 1)*smoothed_occ_remote)>>EWMA_EXP);
         WRITE_ONCE(smoothed_inserts_remote, (cur_inserts + ((1<<EWMA_EXP) - 1)*smoothed_inserts_remote)>>EWMA_EXP);
-        cur_lat_remote = (smoothed_inserts_remote > 0)?(smoothed_occ_remote/smoothed_inserts_remote):(MIN_REMOTE_LAT);
-        WRITE_ONCE(smoothed_lat_remote, (cur_lat_remote > MIN_REMOTE_LAT)?(cur_lat_remote):(MIN_REMOTE_LAT));
+        // cur_lat_remote = (smoothed_inserts_remote > 0)?(smoothed_occ_remote/smoothed_inserts_remote):(MIN_REMOTE_LAT);
+        // WRITE_ONCE(smoothed_lat_remote, (cur_lat_remote > MIN_REMOTE_LAT)?(cur_lat_remote):(MIN_REMOTE_LAT));
         // log_buffer[log_idx].occ_remote = cur_occ;
         // log_buffer[log_idx].inserts_remote = cur_inserts;
         
         // WRITE_ONCE(colloid_local_lat_gt_remote, (smoothed_occ_local > smoothed_occ_remote));
-        WRITE_ONCE(colloid_local_lat_gt_remote, (smoothed_lat_local > smoothed_lat_remote));
 
-        // TODO: Update delta_p and dynlimit
-        WRITE_ONCE(colloid_delta_p, 1UL*COLLOID_PRECISION);
-        WRITE_ONCE(colloid_dynlimit, 1000000000UL);
+        // TODO: Handle the case when rates of either tier can be zero
+        WRITE_ONCE(colloid_local_lat_gt_remote, (smoothed_occ_local*smoothed_inserts_remote > smoothed_occ_remote*smoothed_inserts_local));
+        
+        // Update delta_p
+        if(!colloid_local_lat_gt_remote) {
+            abs_diff = (smoothed_occ_remote*smoothed_inserts_local - smoothed_occ_local*smoothed_inserts_remote);
+        } else {
+            abs_diff = (smoothed_occ_local*smoothed_inserts_remote - smoothed_occ_remote*smoothed_inserts_local);
+        }
+
+        if(abs_diff <= (COLLOID_DELTA_PERCENT*smoothed_occ_local*smoothed_inserts_remote)/100) {
+            WRITE_ONCE(colloid_delta_p, 0UL);
+        } else {
+            cur_p = (smoothed_inserts_local*COLLOID_PRECISION)/(smoothed_inserts_local+smoothed_inserts_remote);
+            if(!colloid_local_lat_gt_remote) {
+                p_lo = cur_p;
+                if(p_hi <= p_lo) {
+                    p_hi = 1UL*COLLOID_PRECISION;
+                }
+            } else {
+                p_hi = cur_p;
+                if(p_lo >= p_hi) {
+                    p_lo = 0UL*COLLOID_PRECISION;
+                }
+            }
+
+            if(p_hi - p_lo < (COLLOID_EPSILON_PERCENT * COLLOID_PRECISION)/100) {
+                if(!colloid_local_lat_gt_remote) {
+                    p_hi = 1UL*COLLOID_PRECISION;
+                } else {
+                    p_lo = 0UL*COLLOID_PRECISION;
+                }
+            }
+            
+            target_p = (p_lo + p_hi)/2;
+            WRITE_ONCE(colloid_delta_p, (target_p >= cur_p)?(target_p-cur_p):(cur_p-target_p));
+        }
+
+
+        // Update dynlimit
+        dlimit = colloid_delta_p * (smoothed_inserts_local + smoothed_inserts_remote) * NUM_CHA_BOXES;
+        dlimit = dlimit * (MIGRATION_QUANTUM_MS/SAMPLE_INTERVAL_MS);
+        dlimit = dlimit / (COLLOID_PRECISION * 64UL);
+        WRITE_ONCE(colloid_dynlimit, dlimit);
 
         // log_idx = (log_idx+1)%LOG_SIZE;
 
@@ -225,6 +271,9 @@ static void init_mon_state(void) {
         }
     }
     log_idx = 0;
+
+    p_lo = 0UL*COLLOID_PRECISION;
+    p_hi = 1UL*COLLOID_PRECISION;
 }
 
 static int colloidmon_init(void)
