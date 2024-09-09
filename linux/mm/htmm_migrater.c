@@ -694,7 +694,7 @@ static unsigned long migrate_lruvec_colloid(unsigned long nr_to_scan, unsigned l
 		LIST_HEAD(page_list);
 		LIST_HEAD(candidate_list);
 		LIST_HEAD(remaining_list);
-		pg_data_t *pgdat = lruvec_pgdat(lruvec);
+		// pg_data_t *pgdat = lruvec_pgdat(lruvec);
 		unsigned long nr_taken, nr_migrated, nr_candidate_pages, pmass, page_freq, page_p;
 		
 		lru_add_drain();
@@ -711,7 +711,7 @@ static unsigned long migrate_lruvec_colloid(unsigned long nr_to_scan, unsigned l
 		pmass = delta_p;
 		while(!list_empty(&page_list) && nr_candidate_pages < migrate_limit && pmass > 0) {
 			struct page *page;
-			page = lru_to_page(page_list);
+			page = lru_to_page(&page_list);
 			list_del(&page->lru);
 
 			if (PageTransHuge(compound_head(page))) {
@@ -768,7 +768,7 @@ static unsigned long promote_node(pg_data_t *pgdat, struct mem_cgroup *memcg)
 	
 	if(htmm_colloid) {
 		// apply colloid migration limit
-		nr_to_promote = min(nr_to_promote, min(htmm_migration_limit_nr_pages, READ_ONCE(colloid_dynlimit)));
+		nr_to_promote = min(nr_to_promote, min((unsigned long)htmm_migration_limit_nr_pages, READ_ONCE(colloid_dynlimit)));
 		delta_p = READ_ONCE(colloid_delta_p);
 		overall_accesses = READ_ONCE(memcg->nr_max_sampled);
 		// promote up to nr_to_promote pages accounting for up to delta_p probability mass
@@ -1135,14 +1135,13 @@ static int kmigraterd_demotion(pg_data_t *pgdat)
 static unsigned long demote_node_active_colloid(pg_data_t *pgdat, struct mem_cgroup *memcg)
 {
     struct lruvec *lruvec = mem_cgroup_lruvec(memcg, pgdat);
-    unsigned long nr_to_demote, nr_demoted = 0, tmp, delta_p, overall_accesses;
+    unsigned long nr_to_demote, nr_demoted = 0, delta_p, overall_accesses;
     enum lru_list lru = LRU_ACTIVE_ANON;
-    int target_nid = htmm_cxl_mode ? HTMM_CXL_REMOTE_NUMA : next_demotion_node(pgdat->node_id);
 
     nr_to_demote = lruvec_lru_size(lruvec, lru, MAX_NR_ZONES);
 	
 	// apply colloid migration limit
-	nr_to_demote = min(nr_to_demote, min(htmm_migration_limit_nr_pages, READ_ONCE(colloid_dynlimit)));
+	nr_to_demote = min(nr_to_demote, min((unsigned long)htmm_migration_limit_nr_pages, READ_ONCE(colloid_dynlimit)));
 	delta_p = READ_ONCE(colloid_delta_p);
 	overall_accesses = READ_ONCE(memcg->nr_max_sampled);
 	// demote up to nr_to_demote pages accounting for up to delta_p probability mass
@@ -1212,7 +1211,7 @@ static int kmigraterd_promotion(pg_data_t *pgdat)
 		}
 	} else {
 		// demote hot pages from default tier to alternate tier
-		upper_pgdat = htmm_cxl_mode ? NODE_DATA(HTMM_CXL_LOCAL_NUMA) : next_promotion_node(pgdat->node_id);
+		upper_pgdat = htmm_cxl_mode ? NODE_DATA(HTMM_CXL_LOCAL_NUMA) : NODE_DATA(next_promotion_node(pgdat->node_id));
 		demote_node_active_colloid(upper_pgdat, memcg);
 	}
 

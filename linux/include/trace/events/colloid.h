@@ -6,7 +6,7 @@
 
 #include <linux/tracepoint.h>
 
-DECLARE_TRACE(migrate,
+DECLARE_TRACE(colloid_migrate,
         TP_PROTO(unsigned long nr_to_scan, unsigned long migrate_limit, unsigned long delta_p, unsigned long overall_accesses, bool promotion, unsigned long nr_migrated),
         TP_ARGS(nr_to_scan, migrate_limit, delta_p, overall_accesses, promotion, nr_migrated));
 
