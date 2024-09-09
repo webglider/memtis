@@ -16,6 +16,7 @@
 #include <linux/htmm.h>
 #include <linux/wait.h>
 #include <linux/sched.h>
+#define CREATE_TRACE_POINTS
 #include <trace/events/colloid.h>
 
 
