@@ -4,6 +4,7 @@
 #if !defined(_TRACE_COLLOID_H) || defined(TRACE_HEADER_MULTI_READ)
 #define _TRACE_COLLOID_H
 
+#include <linux/types.h>
 #include <linux/tracepoint.h>
 
 DECLARE_TRACE(colloid_migrate,

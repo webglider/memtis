@@ -1130,7 +1130,6 @@ static bool page_get_accesses_one(struct page *page, struct vm_area_struct *vma,
 
 	if (pvmw.pte) {
 	    struct page *pte_page;
-	    unsigned long cur_idx;
 	    pte_t *pte = pvmw.pte;
 
 	    pte_page = virt_to_page((unsigned long)pte);
@@ -1180,12 +1179,14 @@ unsigned long page_get_accesses(struct page *page) {
 		.arg = (void *)&hfa,
     };
 
-	if (!PageAnon(page) || PageKsm(page))
-	return 0;
+	if (!PageAnon(page) || PageKsm(page)) {
+		return 0;
+	}
 
-    if (!page_mapped(page))
-	return 0;
-
+    if (!page_mapped(page)) {
+		return 0;
+	}
+	
 	rmap_walk(page, &rwc);
     return hfa.accesses;
 }
