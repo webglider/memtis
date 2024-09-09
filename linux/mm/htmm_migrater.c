@@ -697,6 +697,9 @@ static unsigned long migrate_lruvec_colloid(unsigned long nr_to_scan, unsigned l
 		LIST_HEAD(remaining_list);
 		// pg_data_t *pgdat = lruvec_pgdat(lruvec);
 		unsigned long nr_taken, nr_migrated, nr_candidate_pages, pmass, page_freq, page_p;
+
+		if(overall_accesses == 0)
+			return 0;
 		
 		lru_add_drain();
 
@@ -706,7 +709,7 @@ static unsigned long migrate_lruvec_colloid(unsigned long nr_to_scan, unsigned l
 		spin_unlock_irq(&lruvec->lru_lock);
 
 		if (nr_taken == 0)
-		return 0;
+			return 0;
 
 		nr_candidate_pages = 0;
 		pmass = delta_p;
