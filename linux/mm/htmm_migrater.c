@@ -1103,8 +1103,7 @@ static int kmigraterd_demotion(pg_data_t *pgdat)
 	}
 
 	/* performs split */
-	if (htmm_thres_split != 0 &&
-		!list_empty(&(&pn->deferred_split_queue)->split_queue)) {
+	if (!list_empty(&(&pn->deferred_split_queue)->split_queue)) {
 	    unsigned long nr_split;
 	    nr_split = deferred_split_scan_for_htmm(pn, &split_list);
 	    if (!list_empty(&split_list)) {
@@ -1190,8 +1189,7 @@ static int kmigraterd_promotion(pg_data_t *pgdat)
 	}
 
 	/* performs split */
-	if (htmm_thres_split != 0 &&
-		!list_empty(&(&pn->deferred_split_queue)->split_queue)) {
+	if (!list_empty(&(&pn->deferred_split_queue)->split_queue)) {
 	    unsigned long nr_split;
 	    nr_split = deferred_split_scan_for_htmm(pn, &split_list);
 	    if (!list_empty(&split_list)) {
