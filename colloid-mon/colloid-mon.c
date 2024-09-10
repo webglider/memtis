@@ -14,7 +14,7 @@
 #ifdef SPINPOLL
 #define EWMA_EXP 5
 #else
-#define EWMA_EXP 1
+#define EWMA_EXP 4
 #endif
 
 extern int colloid_local_lat_gt_remote;
