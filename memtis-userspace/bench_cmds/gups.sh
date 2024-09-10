@@ -17,7 +17,3 @@ fi
 export BENCH_RUN
 export BENCH_DRAM
 export GUPS_DURATION
-if [ -n "${MEMTIS_GUPS_DELAY_BG}" ]; then
-    DELAY_BG=${MEMTIS_GUPS_DELAY_BG}
-    export DELAY_BG
-fi
