@@ -241,8 +241,8 @@ void thread_fun_poll_cha(struct work_struct *work) {
 
         // Update dynlimit
         dlimit = colloid_delta_p * (smoothed_inserts_local + smoothed_inserts_remote) * NUM_CHA_BOXES;
-        dlimit = dlimit * (MIGRATION_QUANTUM_MS/SAMPLE_INTERVAL_MS);
         dlimit = dlimit / (COLLOID_PRECISION * 64UL);
+        dlimit = dlimit * (MIGRATION_QUANTUM_MS/SAMPLE_INTERVAL_MS);
         WRITE_ONCE(colloid_dynlimit, dlimit);
 
         // log_idx = (log_idx+1)%LOG_SIZE;
