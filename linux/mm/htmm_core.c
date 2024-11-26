@@ -15,7 +15,11 @@
 #include <linux/xarray.h>
 #include <linux/math.h>
 #include <linux/random.h>
+
+#define CREATE_TRACE_POINTS
+
 #include <trace/events/htmm.h>
+#include <trace/events/nucleus.h>
 
 #include "internal.h"
 #include <asm/pgtable.h>
@@ -1175,6 +1179,7 @@ static void set_memcg_nr_split(struct mem_cgroup *memcg)
     /* scale down */
     memcg->nr_split *= htmm_gamma;
     memcg->nr_split /= 10;
+	trace_nucleus_split(ehr, rhr, nr_records, memcg->sum_util, memcg->num_util, avg_accesses_hp, memcg->nr_split);
 }
 
 /* protected by memcg->access_lock */
@@ -1409,6 +1414,7 @@ void update_pginfo(pid_t pid, unsigned long address, enum events e)
 		     * and rhr is not improved, stop split huge pages */
 		    if (memcg->split_happen) {
 			if (memcg->prev_dram_sampled < (temp_rhr * 103 / 100)) { // 3%
+				trace_nucleus_stopsplit(memcg->prev_dram_sampled, temp_rhr);
 			    htmm_thres_split = 0;
 			    goto mmap_unlock;
 			}
