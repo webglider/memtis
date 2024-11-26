@@ -1408,8 +1408,15 @@ void update_pginfo(pid_t pid, unsigned long address, enum events e)
 		usage >>= htmm_split_period;
 		// the num. of samples must be larger than the fast tier size.
 		usage = max(usage, memcg->max_nr_dram_pages);
+
+		// memcg->last_split_ts
+		// htmm_split_quantum: parameter; (number of seconds)
+		// curr_ts: current timestamp
+		unsigned long curr_ts = jiffies;
 	    
-		if (memcg->nr_sampled_for_split > usage) {
+		if((htmm_split_quantum == 0 && memcg->nr_sampled_for_split > usage) ||
+			(htmm_split_quantum > 0 && time_after(curr_ts, memcg->last_split_ts + htmm_split_quantum * HZ))) {
+		// if (memcg->nr_sampled_for_split > usage) {
 		    /* if split is already performed in the previous
 		     * and rhr is not improved, stop split huge pages */
 		    if (memcg->split_happen) {
@@ -1421,6 +1428,7 @@ void update_pginfo(pid_t pid, unsigned long address, enum events e)
 		    }
 		    memcg->split_happen = false;
 		    memcg->need_split = true;
+			memcg->last_split_ts = curr_ts;
 		} else {
 		    /* re-calculate split threshold due to cooling */
 		    memcg->nr_split = memcg->nr_split + memcg->nr_split_tail_idx;

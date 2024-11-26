@@ -395,6 +395,7 @@ struct mem_cgroup {
 	bool cooled;
 	bool split_happen;
 	bool need_split;
+	unsigned long last_split_ts;
 	unsigned int cooling_clock;
 	unsigned long nr_alloc;
 #endif /* CONFIG_HTMM */

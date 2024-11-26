@@ -5267,6 +5267,7 @@ static struct mem_cgroup *mem_cgroup_alloc(void)
 	memcg->cooled = false;
 	memcg->split_happen = false;
 	memcg->need_split = false;
+	memcg->last_split_ts = jiffies;
 	memcg->cooling_clock = 0;
 	memcg->nr_alloc = 0;
 #endif

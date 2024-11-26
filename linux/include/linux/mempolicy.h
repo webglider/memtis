@@ -191,6 +191,7 @@ extern bool numa_demotion_enabled;
 extern unsigned int htmm_sample_period;
 extern unsigned int htmm_inst_sample_period;
 extern unsigned int htmm_split_period;
+extern unsigned long htmm_split_quantum;
 extern unsigned int htmm_thres_hot;
 extern unsigned int htmm_cooling_period;
 extern unsigned int htmm_adaptation_period;

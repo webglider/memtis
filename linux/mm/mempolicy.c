@@ -3034,6 +3034,7 @@ unsigned int htmm_thres_hot = 1;
 unsigned int htmm_cooling_period = 2000000;
 unsigned int htmm_adaptation_period = 100000;
 unsigned int htmm_split_period = 2; /* used to shift the wss of memcg */
+unsigned long htmm_split_quantum = 200; /* time interval in seconds between split decisions */
 unsigned int ksampled_min_sample_ratio = 50; // 50%
 unsigned int ksampled_max_sample_ratio = 10; // 10%
 unsigned int htmm_demotion_period_in_ms = 500;
@@ -3181,6 +3182,31 @@ static ssize_t htmm_split_period_store(struct kobject *kobj,
 static struct kobj_attribute htmm_split_period_attr =
 	__ATTR(htmm_split_period, 0644, htmm_split_period_show,
 	       htmm_split_period_store);
+
+static ssize_t htmm_split_quantum_show(struct kobject *kobj,
+				   struct kobj_attribute *attr, char *buf)
+{
+	return sysfs_emit(buf, "%lu\n", htmm_split_quantum);
+}
+
+static ssize_t htmm_split_quantum_store(struct kobject *kobj,
+				    struct kobj_attribute *attr,
+				    const char *buf, size_t count)
+{
+	int err;
+	unsigned long thres;
+
+	err = kstrtoul(buf, 10, &thres);
+	if (err)
+		return err;
+
+	WRITE_ONCE(htmm_split_quantum, thres);
+	return count;
+}
+
+static struct kobj_attribute htmm_split_quantum_attr =
+	__ATTR(htmm_split_quantum, 0644, htmm_split_quantum_show,
+	       htmm_split_quantum_store);
 
 
 static ssize_t htmm_thres_hot_show(struct kobject *kobj,
@@ -3610,6 +3636,7 @@ static struct attribute *htmm_attrs[] = {
 	&htmm_sample_period_attr.attr,
 	&htmm_inst_sample_period_attr.attr,
 	&htmm_split_period_attr.attr,
+	&htmm_split_quantum_attr.attr,
 	&htmm_thres_hot_attr.attr,
 	&htmm_cooling_period_attr.attr,
 	&htmm_adaptation_period_attr.attr,
