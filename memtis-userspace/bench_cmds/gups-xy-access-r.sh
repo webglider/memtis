@@ -3,7 +3,7 @@
 BIN=/home/omar/nucleus/apps
 gups_cores=16
 x_y_ratio=5
-duration=300
+duration=900
 wss=64
 
 BENCH_DRAM="32GB"

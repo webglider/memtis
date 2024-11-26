@@ -1420,7 +1420,7 @@ void update_pginfo(pid_t pid, unsigned long address, enum events e)
 		    /* if split is already performed in the previous
 		     * and rhr is not improved, stop split huge pages */
 		    if (memcg->split_happen) {
-			if (memcg->prev_dram_sampled < (temp_rhr * 103 / 100)) { // 3%
+			if (memcg->prev_dram_sampled < (temp_rhr * htmm_rhr_thres / 100)) { // 3%
 				trace_nucleus_stopsplit(memcg->prev_dram_sampled, temp_rhr);
 			    htmm_thres_split = 0;
 			    goto mmap_unlock;
