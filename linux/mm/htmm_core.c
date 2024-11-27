@@ -1141,6 +1141,7 @@ static void set_memcg_nr_split(struct mem_cgroup *memcg)
 		    CXL_ACCESS_LATENCY : NVM_ACCESS_LATENCY;
     unsigned long nr_records;
     unsigned int avg_accesses_hp;
+	unsigned int shift_exponent;
 
     memcg->nr_split = 0;
     memcg->nr_split_tail_idx = 0;
@@ -1160,8 +1161,10 @@ static void set_memcg_nr_split(struct mem_cgroup *memcg)
     if (avg_accesses_hp == 0)
 	return;
 
-    nr_records = (htmm_cooling_period << 1) -
-	    (htmm_cooling_period >> (memcg->cooling_clock - 1));
+	shift_exponent = (memcg->cooling_clock - 1 < 31)?(memcg->cooling_clock - 1):(31);
+    
+	nr_records = (htmm_cooling_period << 1) -
+	    (htmm_cooling_period >> shift_exponent);
 
     /* N = (eHR - rHR) * (nr_samples / avg_accesses_hp) * (delta lat / fast lat);
      * >> (eHR - rHR) == ('ehr' - 'rhr') / 'nr_records';
